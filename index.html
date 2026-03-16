@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>質感生活帳本 - 個人帳務管理</title>
+    
+    <!-- 引入 Noto Sans TC 字體 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- 引入 Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ====== 手繪質感風格 CSS ====== */
+        :root {
+            --bg-color: #fdfbf7; /* 紙質背景色 */
+            --text-color: #4a3f35; /* 深咖啡色字體 */
+            --border-color: #4a3f35;
+            
+            --color-basic: #A8D8B9; /* 基礎生活 - 柔和綠 */
+            --color-growth: #F3C98B; /* 品質成長 - 溫暖黃 */
+            --color-irregular: #F4A698; /* 不定期 - 柔和粉 */
+            --color-saving: #8BB8F3; /* 儲蓄投資 - 沉穩藍 */
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            /* 輕微的紙張紋理效果 */
+            background-image: radial-gradient(#e0dcd3 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* 手繪風外框 */
+        .hand-drawn-box {
+            background: rgba(255, 255, 255, 0.85);
+            border: 2px solid var(--border-color);
+            /* 使用稍微不規則的圓角營造手繪感 */
+            border-radius: 255px 15px 225px 15px/15px 225px 15px 255px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 4px 4px 0px rgba(74, 63, 53, 0.15);
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            font-weight: 700;
+        }
+
+        /* 導覽列標籤 */
+        .tabs {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .tab-btn {
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            padding: 10px 25px;
+            background: transparent;
+            border: 2px solid var(--border-color);
+            border-radius: 10px 20px 15px 25px/25px 15px 20px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn.active {
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            box-shadow: 2px 2px 0px rgba(0,0,0,0.2);
+        }
+
+        .tab-btn:hover:not(.active) {
+            background-color: rgba(74, 63, 53, 0.1);
+        }
+
+        /* 表單元素手繪感 */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input[type="text"], 
+        input[type="number"], 
+        select {
+            width: 100%;
+            padding: 12px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 16px;
+            background: transparent;
+            border: 2px solid var(--border-color);
+            border-radius: 10px 5px 15px 5px/5px 15px 5px 10px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        input:focus, select:focus {
+            background-color: #fff;
+            box-shadow: inset 0 0 5px rgba(74, 63, 53, 0.1);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 15px;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            background-color: var(--color-growth);
+            color: var(--text-color);
+            border: 2px solid var(--border-color);
+            border-radius: 15px 225px 15px 255px/255px 15px 225px 15px;
+            cursor: pointer;
+            transition: transform 0.1s, box-shadow 0.1s;
+            margin-top: 10px;
+        }
+
+        .btn-submit:hover {
+            transform: translate(-2px, -2px);
+            box-shadow: 4px 4px 0px rgba(74, 63, 53, 0.2);
+        }
+
+        .btn-submit:active {
+            transform: translate(0, 0);
+            box-shadow: none;
+        }
+
+        /* 設定區域 */
+        .settings-area {
+            background: rgba(0,0,0,0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px dashed var(--border-color);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        #apiUrlInput {
+            width: calc(100% - 100px);
+            display: inline-block;
+        }
+        
+        .btn-small {
+            width: 90px;
+            padding: 11px;
+            margin-left: 5px;
+            background-color: var(--bg-color);
+            border: 2px solid var(--border-color);
+            border-radius: 5px 10px 5px 10px/10px 5px 10px 5px;
+            cursor: pointer;
+        }
+
+        /* 登入區塊與頭部樣式 */
+        #login-section {
+            max-width: 400px;
+            margin: 40px auto;
+        }
+        
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .btn-logout {
+            background-color: transparent;
+            border: 2px solid var(--border-color);
+            padding: 5px 15px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .btn-logout:hover {
+            background-color: var(--color-irregular);
+            color: white;
+        }
+
+        /* 隱藏區塊 */
+        .hidden { display: none; }
+
+        /* 預覽圖片 */
+        #imgPreview {
+            max-width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 8px;
+            display: none;
+            border: 1px solid var(--border-color);
+        }
+
+        /* 載入動畫 */
+        .loader {
+            text-align: center;
+            padding: 20px;
+            font-style: italic;
+            color: #888;
+        }
+
+        /* 總覽卡片區塊 */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: rgba(255, 255, 255, 0.6);
+            border: 2px dashed var(--border-color);
+            border-radius: 15px 5px 15px 5px/5px 15px 5px 15px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .summary-card h4 {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 15px;
+        }
+
+        .summary-card .amount {
+            font-size: 26px;
+            font-weight: bold;
+        }
+        
+        .summary-card .amount.expense { color: var(--color-irregular); }
+        .summary-card .amount.saving { color: var(--color-saving); }
+        .summary-card .amount.net { color: var(--text-color); }
+
+        .breakdown-list {
+            margin-top: 15px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(74, 63, 53, 0.3);
+            font-size: 13px;
+            color: #555;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        /* 圖表區塊 */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+
+        /* 歷史紀錄列表 */
+        .record-list {
+            list-style: none;
+            padding: 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .record-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px dashed rgba(74, 63, 53, 0.3);
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .badge-basic { background-color: var(--color-basic); }
+        .badge-growth { background-color: var(--color-growth); }
+        .badge-irregular { background-color: var(--color-irregular); }
+        .badge-saving { background-color: var(--color-saving); color: #fff; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-actions">
+        <h1 style="margin: 0;">🌿 質感生活帳本</h1>
+        <button id="logoutBtn" class="btn-logout hidden" onclick="logout()">登出</button>
+    </div>
+    
+    <!-- API 設定與登入區 -->
+    <div id="login-section" class="hand-drawn-box">
+        <h2 style="margin-top: 0; text-align: center;">🔗 系統登入</h2>
+        <div class="form-group" id="apiUrlGroup">
+            <label>GAS API URL：</label>
+            <input type="text" id="apiUrlInput" placeholder="請貼上您的 Web App URL...">
+        </div>
+        <div class="form-group">
+            <label>👤 帳號：</label>
+            <input type="text" id="accountInput" placeholder="請輸入帳號...">
+        </div>
+        <div class="form-group">
+            <label>🔑 密碼：</label>
+            <input type="password" id="passwordInput" placeholder="請輸入密碼...">
+        </div>
+        <button class="btn-submit" onclick="login()" id="loginBtn">登入系統</button>
+        <small style="color: #666; margin-top: 15px; display: block; text-align: center;">*驗證成功後將儲存於本地瀏覽器</small>
+    </div>
+
+    <!-- 主程式區塊 (登入後顯示) -->
+    <div id="main-app" class="hidden">
+        <!-- 導覽列 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('input')">✍️ 記一筆</button>
+            <button class="tab-btn" onclick="switchTab('dashboard')">📊 生活報表</button>
+        </div>
+
+        <!-- 輸入紀錄區塊 -->
+        <div id="tab-input" class="hand-drawn-box">
+            <form id="recordForm">
+
+            <div class="form-group">
+                <label>收支類型</label>
+                <select id="type" required onchange="updateMainCategories()">
+                    <option value="支出">💸 支出</option>
+                    <option value="收入">💰 收入</option>
+                    <option value="儲蓄與投資">🏦 儲蓄與投資</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>主分類</label>
+                <select id="mainCategory" required onchange="updateSubCategories()">
+                    <!-- 由 JS 動態生成 -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>子分類</label>
+                <select id="subCategory" required>
+                    <!-- 由 JS 動態生成 -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>金額 (NT$)</label>
+                <input type="number" id="amount" min="0" required placeholder="請輸入金額...">
+            </div>
+
+            <div class="form-group">
+                <label>花費名稱或儲蓄名稱</label>
+                <input type="text" id="note" placeholder="請輸入名稱...">
+            </div>
+
+            <div class="form-group">
+                <label>上傳單據/實物照 (選填，自動壓縮存放)</label>
+                <input type="file" id="imageInput" accept="image/*" style="border: none; padding: 0;">
+                <img id="imgPreview" alt="圖片預覽">
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">✨ 記錄生活軌跡</button>
+        </form>
+    </div>
+
+    <!-- 統計報表區塊 -->
+    <div id="tab-dashboard" class="hand-drawn-box hidden">
+        <div id="loader" class="loader hidden">載入數據中，請稍候...</div>
+        
+        <div id="dashboardContent">
+            <h3 id="currentMonthTitle" style="margin-top: 0;">📅 本月總覽</h3>
+            
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <h4>當月總花費</h4>
+                    <div class="amount expense" id="totalExpenseMonth">$0</div>
+                    <div class="breakdown-list" id="expenseBreakdown">
+                        <!-- 由 JS 動態生成 -->
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <h4>當月總儲蓄</h4>
+                    <div class="amount saving" id="totalSavingMonth">$0</div>
+                    <div class="breakdown-list" id="savingBreakdown">
+                        <!-- 由 JS 動態生成 -->
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <h4>收支損益</h4>
+                    <div class="amount net" id="netBalanceMonth">$0</div>
+                    <div class="breakdown-list">
+                        <div class="breakdown-item"><span>總收入</span><span id="totalIncomeMonth">$0</span></div>
+                        <div class="breakdown-item"><span>總花費</span><span id="totalExpenseDisplay">$0</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 40px;">資源配置分析 (本月)</h3>
+            <div class="chart-container">
+                <canvas id="expenseChart"></canvas>
+            </div>
+
+            <h3 style="margin-top: 40px;">近期紀錄</h3>
+            <ul class="record-list" id="recordList">
+                <!-- 由 JS 動態生成 -->
+            </ul>
+        </div>
+    </div>
+    </div> <!-- 結束 main-app -->
+</div>
+
+<script>
+    // ====== 0. 系統設定 ======
+    // 若在此處填入您的 GAS API URL，登入畫面將會自動隱藏該輸入框
+    const HARDCODED_API_URL = ""; // 範例: "https://script.google.com/macros/s/XXXXXX/exec"
+
+    // ====== 1. 分類資料定義 ======
+    const categoryData = {
+        "收入": {
+            "一般收入": ["薪資", "獎金", "投資收益", "其他收入"]
+        },
+        "支出": {
+            "基礎生活": [
+                "食 (早午晚餐、咖啡飲料、朋友聚餐、買菜零食)",
+                "衣 (日常衣物、鞋包配件、理髮、保養品或化妝品)",
+                "住 (房租或房貸、水電瓦斯費、電信與網路費、日常消耗品)",
+                "行 (高鐵與台鐵、市區公車/捷運、汽機車油錢與保養、單車維護與耗材裝備)",
+                "其他基礎"
+            ],
+            "品質與成長": [
+                "育 (購買書籍與詩集、線上或實體進修課程、設計軟體訂閱)",
+                "樂 (園藝植栽與盆器、單車旅行或環島、電影展覽、串流平台訂閱)",
+                "其他質感"
+            ],
+            "不定期開支": [
+                "醫療保健 (看診掛號費、常備藥品、保健食品)",
+                "人際交際 (婚喪喜慶的紅包或白包、送禮、孝親費)",
+                "保險與稅務 (各式險種保費、所得稅、牌照稅等)",
+                "其他不定期"
+            ]
+        },
+        "儲蓄與投資": {
+            "儲蓄與投資": ["固定儲蓄", "股票", "基金", "定期定額", "其他投資"]
+        }
+    };
+
+    // ====== 2. 初始化與事件綁定 ======
+    document.addEventListener('DOMContentLoaded', () => {
+        // 處理 API URL 顯示邏輯
+        if (HARDCODED_API_URL.trim() !== "") {
+            document.getElementById('apiUrlGroup').classList.add('hidden');
+        } else {
+            const savedUrl = localStorage.getItem('gasApiUrl');
+            if (savedUrl) {
+                document.getElementById('apiUrlInput').value = savedUrl;
+            }
+        }
+
+        // 讀取本地儲存的設定
+        const savedAccount = localStorage.getItem('account');
+        
+        if (savedAccount) {
+            document.getElementById('accountInput').value = savedAccount;
+        }
+
+        // 若已登入過，自動進入主畫面
+        if (localStorage.getItem('isLoggedIn') === 'true') {
+            showMainApp();
+        }
+
+        // 初始化下拉選單
+        updateMainCategories();
+
+        // 圖片上傳預覽與壓縮處理
+        document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+
+        // 表單提交事件
+        document.getElementById('recordForm').addEventListener('submit', handleFormSubmit);
+    });
+
+    // ====== 3. UI 互動邏輯 ======
+    async function login() {
+        const url = HARDCODED_API_URL.trim() !== "" ? HARDCODED_API_URL.trim() : document.getElementById('apiUrlInput').value.trim();
+        const account = document.getElementById('accountInput').value.trim();
+        const password = document.getElementById('passwordInput').value.trim();
+        
+        if (!url || !account || !password) {
+            alert('請填寫完整 API URL、帳號與密碼！');
+            return;
+        }
+
+        const loginBtn = document.getElementById('loginBtn');
+        loginBtn.disabled = true;
+        loginBtn.textContent = '⏳ 驗證中...';
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'verifyLogin',
+                    account: account,
+                    password: password
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                if (HARDCODED_API_URL.trim() === "") {
+                    localStorage.setItem('gasApiUrl', url);
+                }
+                localStorage.setItem('account', account);
+                localStorage.setItem('isLoggedIn', 'true');
+                alert('登入成功！');
+                showMainApp();
+            } else {
+                alert('登入失敗: ' + result.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('連線失敗，請檢查 URL 是否正確或確認 GAS 已設定為「所有人」可存取。');
+        } finally {
+            loginBtn.disabled = false;
+            loginBtn.textContent = '登入系統';
+        }
+    }
+
+    function showMainApp() {
+        document.getElementById('login-section').classList.add('hidden');
+        document.getElementById('main-app').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        switchTab('input');
+    }
+
+    function logout() {
+        localStorage.removeItem('isLoggedIn');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('login-section').classList.remove('hidden');
+        document.getElementById('main-app').classList.add('hidden');
+        document.getElementById('logoutBtn').classList.add('hidden');
+    }
+
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('tab-input').classList.add('hidden');
+        document.getElementById('tab-dashboard').classList.add('hidden');
+
+        if (tabName === 'input') {
+            document.querySelectorAll('.tab-btn')[0].classList.add('active');
+            document.getElementById('tab-input').classList.remove('hidden');
+        } else {
+            document.querySelectorAll('.tab-btn')[1].classList.add('active');
+            document.getElementById('tab-dashboard').classList.remove('hidden');
+            loadDashboardData(); // 切換到報表時自動載入資料
+        }
+    }
+
+    // 連動下拉選單：類型 -> 主分類
+    function updateMainCategories() {
+        const type = document.getElementById('type').value;
+        const mainSelect = document.getElementById('mainCategory');
+        mainSelect.innerHTML = '';
+        
+        Object.keys(categoryData[type]).forEach(main => {
+            let option = document.createElement('option');
+            option.value = main;
+            option.textContent = main;
+            mainSelect.appendChild(option);
+        });
+        
+        updateSubCategories();
+    }
+
+    // 連動下拉選單：主分類 -> 子分類
+    function updateSubCategories() {
+        const type = document.getElementById('type').value;
+        const main = document.getElementById('mainCategory').value;
+        const subSelect = document.getElementById('subCategory');
+        subSelect.innerHTML = '';
+        
+        if (categoryData[type][main]) {
+            categoryData[type][main].forEach(sub => {
+                let option = document.createElement('option');
+                option.value = sub;
+                option.textContent = sub;
+                subSelect.appendChild(option);
+            });
+        }
+    }
+
+    // ====== 4. 圖片壓縮邏輯 (Canvas) ======
+    let compressedImageBase64 = "";
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800;
+                let width = img.width;
+                let height = img.height;
+
+                // 等比例縮放至最大寬度 800px
+                if (width > MAX_WIDTH) {
+                    height = Math.round((height * MAX_WIDTH) / width);
+                    width = MAX_WIDTH;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                // 壓縮為 JPEG Base64 (品質 0.7)
+                compressedImageBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                
+                // 顯示預覽
+                const preview = document.getElementById('imgPreview');
+                preview.src = compressedImageBase64;
+                preview.style.display = 'block';
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // ====== 5. API 通訊邏輯 ======
+    async function handleFormSubmit(event) {
+        event.preventDefault();
+        
+        const apiUrl = HARDCODED_API_URL.trim() !== "" ? HARDCODED_API_URL.trim() : localStorage.getItem('gasApiUrl');
+        if (!apiUrl) {
+            alert('請先設定 GAS API URL！');
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = '⏳ 記錄上傳中...';
+
+        const payload = {
+            type: document.getElementById('type').value,
+            mainCategory: document.getElementById('mainCategory').value,
+            subCategory: document.getElementById('subCategory').value,
+            amount: parseInt(document.getElementById('amount').value, 10),
+            note: document.getElementById('note').value,
+            image: compressedImageBase64
+        };
+
+        try {
+            // 發送 POST 請求 (使用 text/plain 避免預檢請求)
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'addRecord',
+                    payload: payload
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                alert('✨ 記錄成功寫入！');
+                document.getElementById('recordForm').reset();
+                document.getElementById('imgPreview').style.display = 'none';
+                compressedImageBase64 = "";
+                updateMainCategories();
+            } else {
+                alert('寫入失敗: ' + result.message);
+            }
+        } catch (error) {
+            console.error(error);
+            alert('API 呼叫失敗，請檢查網址或網路狀態。');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = '✨ 記錄生活軌跡';
+        }
+    }
+
+    // ====== 6. 報表繪製邏輯 ======
+    let myChart = null;
+
+    async function loadDashboardData() {
+        const apiUrl = HARDCODED_API_URL.trim() !== "" ? HARDCODED_API_URL.trim() : localStorage.getItem('gasApiUrl');
+        if (!apiUrl) {
+            document.getElementById('dashboardContent').innerHTML = '<p style="text-align:center;color:red;">請先設定 API URL 才能讀取數據哦！</p>';
+            return;
+        }
+
+        document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('dashboardContent').classList.add('hidden');
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: JSON.stringify({ action: 'getRecords' })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                renderChartsAndList(result.data);
+                document.getElementById('dashboardContent').classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('讀取數據失敗。');
+        } finally {
+            document.getElementById('loader').classList.add('hidden');
+        }
+    }
+
+    function renderChartsAndList(records) {
+        // 1. 渲染列表
+        const listEl = document.getElementById('recordList');
+        listEl.innerHTML = '';
+        
+        if (records.length === 0) {
+            listEl.innerHTML = '<li style="text-align:center; padding: 20px;">目前還沒有紀錄哦，快去記一筆吧！</li>';
+        } else {
+            // 顯示最新 10 筆
+            const recentRecords = records.slice(0, 10);
+            recentRecords.forEach(record => {
+                const dateObj = new Date(record['時間戳記']);
+                const dateStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours().toString().padStart(2,'0')}:${dateObj.getMinutes().toString().padStart(2,'0')}`;
+                
+                let badgeClass = 'badge-basic';
+                if (record['主分類'] === '品質與成長') badgeClass = 'badge-growth';
+                if (record['主分類'] === '不定期開支') badgeClass = 'badge-irregular';
+                if (record['主分類'] === '儲蓄與投資') badgeClass = 'badge-saving';
+
+                // 處理圖片顯示邏輯
+                let imageHtml = '';
+                if (record['圖片(Base64)']) {
+                    // 加入點擊放大/縮小的簡易互動
+                    imageHtml = `
+                        <div style="margin-top: 10px;">
+                            <img src="${record['圖片(Base64)']}" alt="單據/實物" 
+                                 style="max-height: 80px; border-radius: 5px; border: 1px dashed var(--border-color); cursor: pointer; transition: all 0.3s ease;" 
+                                 onclick="if(this.style.maxHeight==='80px'){this.style.maxHeight='300px';this.style.maxWidth='100%';}else{this.style.maxHeight='80px';}"
+                                 title="點擊放大/縮小">
+                        </div>`;
+                }
+
+                const li = document.createElement('li');
+                li.className = 'record-item';
+                li.style.alignItems = 'flex-start'; // 確保圖片出現時排版靠上對齊
+                li.innerHTML = `
+                    <div style="flex: 1; padding-right: 15px;">
+                        <div style="font-size:12px; color:#888;">${dateStr}</div>
+                        <div style="font-weight:bold;">
+                            <span class="badge ${badgeClass}">${record['主分類']}</span> 
+                            ${record['子分類']}
+                        </div>
+                        <div style="font-size:14px; color:#666; margin-top:4px;">${record['備註'] || ''}</div>
+                        ${imageHtml}
+                    </div>
+                    <div style="font-size:18px; font-weight:bold; color: var(--text-color); margin-top: 10px;">
+                        $${record['金額'].toLocaleString()}
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        // 2. 準備本月與圖表資料
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth();
+
+        let monthIncome = 0;
+        let monthExpense = 0;
+        let monthSaving = 0;
+
+        let expenseCatSums = { "基礎生活": 0, "品質與成長": 0, "不定期開支": 0 };
+        let savingCatSums = {};
+
+        records.forEach(r => {
+            const d = new Date(r['時間戳記']);
+            const amount = Number(r['金額']) || 0;
+            const type = r['類型'] || '支出'; // 兼容舊資料預設為支出
+            const mainCat = r['主分類'];
+            const subCat = r['子分類'];
+
+            // 僅計算「本月」資料用於總覽與圖表
+            if (d.getFullYear() === currentYear && d.getMonth() === currentMonth) {
+                if (type === '收入') {
+                    monthIncome += amount;
+                } else if (type === '支出' || (!type && mainCat !== '儲蓄與投資')) {
+                    monthExpense += amount;
+                    if (expenseCatSums[mainCat] !== undefined) {
+                        expenseCatSums[mainCat] += amount;
+                    } else {
+                        expenseCatSums[mainCat] = amount; // 處理自定義分類
+                    }
+                } else if (type === '儲蓄與投資' || mainCat === '儲蓄與投資') {
+                    monthSaving += amount;
+                    savingCatSums[subCat] = (savingCatSums[subCat] || 0) + amount; // 儲蓄以子分類呈現細項
+                }
+            }
+        });
+
+        // 更新本月總覽 UI
+        document.getElementById('currentMonthTitle').textContent = `📅 本月總覽 (${currentYear}年${currentMonth + 1}月)`;
+        document.getElementById('totalExpenseMonth').textContent = `$${monthExpense.toLocaleString()}`;
+        document.getElementById('totalSavingMonth').textContent = `$${monthSaving.toLocaleString()}`;
+        
+        const netBalance = monthIncome - monthExpense;
+        const netEl = document.getElementById('netBalanceMonth');
+        netEl.textContent = `$${netBalance.toLocaleString()}`;
+        netEl.style.color = netBalance >= 0 ? 'var(--color-basic)' : 'var(--color-irregular)';
+        
+        document.getElementById('totalIncomeMonth').textContent = `$${monthIncome.toLocaleString()}`;
+        document.getElementById('totalExpenseDisplay').textContent = `$${monthExpense.toLocaleString()}`;
+
+        // 渲染花費各項明細
+        let expenseBreakdownHtml = '';
+        for (let cat in expenseCatSums) {
+            expenseBreakdownHtml += `<div class="breakdown-item"><span>${cat}</span><span>$${expenseCatSums[cat].toLocaleString()}</span></div>`;
+        }
+        document.getElementById('expenseBreakdown').innerHTML = expenseBreakdownHtml;
+
+        // 渲染儲蓄各項明細
+        let savingBreakdownHtml = '';
+        if (Object.keys(savingCatSums).length === 0) {
+            savingBreakdownHtml = '<div style="text-align:center; color:#999; margin-top: 5px;">無儲蓄紀錄</div>';
+        } else {
+            for (let cat in savingCatSums) {
+                savingBreakdownHtml += `<div class="breakdown-item"><span>${cat}</span><span>$${savingCatSums[cat].toLocaleString()}</span></div>`;
+            }
+        }
+        document.getElementById('savingBreakdown').innerHTML = savingBreakdownHtml;
+
+        // 3. 繪製圖表 (Chart.js) - 改為呈現本月資料
+        const chartData = [
+            expenseCatSums["基礎生活"] || 0, 
+            expenseCatSums["品質與成長"] || 0, 
+            expenseCatSums["不定期開支"] || 0, 
+            monthSaving
+        ];
+
+        const ctx = document.getElementById('expenseChart').getContext('2d');
+        
+        if (myChart) {
+            myChart.destroy(); // 銷毀舊圖表
+        }
+
+        myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['生存必要 (基礎生活)', '生活質感 (品質與成長)', '風險管理 (不定期開支)', '未來資本 (儲蓄與投資)'],
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: [
+                        '#A8D8B9', // 柔綠
+                        '#F3C98B', // 暖黃
+                        '#F4A698', // 柔粉
+                        '#8BB8F3'  // 沉靜藍
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#4a3f35', // 手繪深色邊框
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { family: "'Noto Sans TC', sans-serif" },
+                            color: '#4a3f35'
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed !== null) {
+                                    label += new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'TWD', minimumFractionDigits: 0 }).format(context.parsed);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                cutout: '60%' // 甜甜圈粗細
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
