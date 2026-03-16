@@ -101,6 +101,7 @@
 
         input[type="text"], 
         input[type="number"], 
+        input[type="password"],
         select {
             width: 100%;
             padding: 12px;
@@ -144,31 +145,6 @@
             box-shadow: none;
         }
 
-        /* 設定區域 */
-        .settings-area {
-            background: rgba(0,0,0,0.03);
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px dashed var(--border-color);
-            margin-bottom: 30px;
-            font-size: 14px;
-        }
-        
-        #apiUrlInput {
-            width: calc(100% - 100px);
-            display: inline-block;
-        }
-        
-        .btn-small {
-            width: 90px;
-            padding: 11px;
-            margin-left: 5px;
-            background-color: var(--bg-color);
-            border: 2px solid var(--border-color);
-            border-radius: 5px 10px 5px 10px/10px 5px 10px 5px;
-            cursor: pointer;
-        }
-
         /* 登入區塊與頭部樣式 */
         #login-section {
             max-width: 400px;
@@ -199,7 +175,7 @@
         }
 
         /* 隱藏區塊 */
-        .hidden { display: none; }
+        .hidden { display: none !important; }
 
         /* 預覽圖片 */
         #imgPreview {
@@ -256,6 +232,7 @@
             border-top: 1px dashed rgba(74, 63, 53, 0.3);
             font-size: 13px;
             color: #555;
+            text-align: left;
         }
 
         .breakdown-item {
@@ -283,7 +260,7 @@
         .record-item {
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             padding: 12px;
             border-bottom: 1px dashed rgba(74, 63, 53, 0.3);
         }
@@ -304,6 +281,53 @@
         .badge-growth { background-color: var(--color-growth); }
         .badge-irregular { background-color: var(--color-irregular); }
         .badge-saving { background-color: var(--color-saving); color: #fff; }
+
+        /* 刪除按鈕樣式 */
+        .btn-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 5px;
+            margin-top: 5px;
+            opacity: 0.5;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+        .btn-delete:hover {
+            opacity: 1;
+            transform: scale(1.1);
+        }
+
+        /* 自訂對話框 (Modal) 樣式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(74, 63, 53, 0.5);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 9999;
+        }
+        .modal-box {
+            background: var(--bg-color);
+            padding: 25px;
+            max-width: 320px;
+            width: 90%;
+            text-align: center;
+            border: 2px solid var(--border-color);
+            border-radius: 15px 225px 15px 255px/255px 15px 225px 15px;
+            box-shadow: 4px 4px 0px rgba(74, 63, 53, 0.15);
+        }
+        .modal-btn {
+            padding: 8px 20px; margin: 0 5px;
+            border: 2px solid var(--border-color);
+            background: transparent;
+            font-family: inherit; font-size: 16px; font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px 10px 5px 10px/10px 5px 10px 5px;
+            transition: all 0.2s;
+        }
+        .modal-btn:hover { transform: scale(1.05); }
+        .modal-btn-confirm { background-color: var(--color-irregular); color: white; }
+        .modal-btn-cancel { background-color: #e0dcd3; color: var(--text-color); }
 
     </style>
 </head>
@@ -346,99 +370,110 @@
         <div id="tab-input" class="hand-drawn-box">
             <form id="recordForm">
 
-            <div class="form-group">
-                <label>收支類型</label>
-                <select id="type" required onchange="updateMainCategories()">
-                    <option value="支出">💸 支出</option>
-                    <option value="收入">💰 收入</option>
-                    <option value="儲蓄與投資">🏦 儲蓄與投資</option>
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>收支類型</label>
+                    <select id="type" required onchange="updateMainCategories()">
+                        <option value="支出">💸 支出</option>
+                        <option value="收入">💰 收入</option>
+                        <option value="儲蓄與投資">🏦 儲蓄與投資</option>
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>主分類</label>
-                <select id="mainCategory" required onchange="updateSubCategories()">
-                    <!-- 由 JS 動態生成 -->
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>主分類</label>
+                    <select id="mainCategory" required onchange="updateSubCategories()">
+                        <!-- 由 JS 動態生成 -->
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>子分類</label>
-                <select id="subCategory" required>
-                    <!-- 由 JS 動態生成 -->
-                </select>
-            </div>
+                <div class="form-group">
+                    <label>子分類</label>
+                    <select id="subCategory" required>
+                        <!-- 由 JS 動態生成 -->
+                    </select>
+                </div>
 
-            <div class="form-group">
-                <label>金額 (NT$)</label>
-                <input type="number" id="amount" min="0" required placeholder="請輸入金額...">
-            </div>
+                <div class="form-group">
+                    <label>金額 (NT$)</label>
+                    <input type="number" id="amount" min="0" required placeholder="請輸入金額...">
+                </div>
 
-            <div class="form-group">
-                <label>花費名稱或儲蓄名稱</label>
-                <input type="text" id="note" placeholder="請輸入名稱...">
-            </div>
+                <div class="form-group">
+                    <label>花費名稱或儲蓄名稱</label>
+                    <input type="text" id="note" placeholder="請輸入名稱...">
+                </div>
 
-            <div class="form-group">
-                <label>上傳單據/實物照 (選填，自動壓縮存放)</label>
-                <input type="file" id="imageInput" accept="image/*" style="border: none; padding: 0;">
-                <img id="imgPreview" alt="圖片預覽">
-            </div>
+                <div class="form-group">
+                    <label>上傳單據/實物照 (選填，自動壓縮存放)</label>
+                    <input type="file" id="imageInput" accept="image/*" style="border: none; padding: 0;">
+                    <img id="imgPreview" alt="圖片預覽">
+                </div>
 
-            <button type="submit" class="btn-submit" id="submitBtn">✨ 記錄生活軌跡</button>
-        </form>
-    </div>
+                <button type="submit" class="btn-submit" id="submitBtn">✨ 記錄生活軌跡</button>
+            </form>
+        </div>
 
-    <!-- 統計報表區塊 -->
-    <div id="tab-dashboard" class="hand-drawn-box hidden">
-        <div id="loader" class="loader hidden">載入數據中，請稍候...</div>
-        
-        <div id="dashboardContent">
-            <h3 id="currentMonthTitle" style="margin-top: 0;">📅 本月總覽</h3>
+        <!-- 統計報表區塊 -->
+        <div id="tab-dashboard" class="hand-drawn-box hidden">
+            <div id="loader" class="loader hidden">載入數據中，請稍候...</div>
             
-            <div class="summary-grid">
-                <div class="summary-card">
-                    <h4>當月總花費</h4>
-                    <div class="amount expense" id="totalExpenseMonth">$0</div>
-                    <div class="breakdown-list" id="expenseBreakdown">
-                        <!-- 由 JS 動態生成 -->
+            <div id="dashboardContent">
+                <h3 id="currentMonthTitle" style="margin-top: 0;">📅 本月總覽</h3>
+                
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <h4>當月總花費</h4>
+                        <div class="amount expense" id="totalExpenseMonth">$0</div>
+                        <div class="breakdown-list" id="expenseBreakdown">
+                            <!-- 由 JS 動態生成 -->
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <h4>當月總儲蓄</h4>
+                        <div class="amount saving" id="totalSavingMonth">$0</div>
+                        <div class="breakdown-list" id="savingBreakdown">
+                            <!-- 由 JS 動態生成 -->
+                        </div>
+                    </div>
+                    <div class="summary-card">
+                        <h4>收支損益</h4>
+                        <div class="amount net" id="netBalanceMonth">$0</div>
+                        <div class="breakdown-list">
+                            <div class="breakdown-item"><span>總收入</span><span id="totalIncomeMonth">$0</span></div>
+                            <div class="breakdown-item"><span>總花費</span><span id="totalExpenseDisplay">$0</span></div>
+                        </div>
                     </div>
                 </div>
-                <div class="summary-card">
-                    <h4>當月總儲蓄</h4>
-                    <div class="amount saving" id="totalSavingMonth">$0</div>
-                    <div class="breakdown-list" id="savingBreakdown">
-                        <!-- 由 JS 動態生成 -->
-                    </div>
-                </div>
-                <div class="summary-card">
-                    <h4>收支損益</h4>
-                    <div class="amount net" id="netBalanceMonth">$0</div>
-                    <div class="breakdown-list">
-                        <div class="breakdown-item"><span>總收入</span><span id="totalIncomeMonth">$0</span></div>
-                        <div class="breakdown-item"><span>總花費</span><span id="totalExpenseDisplay">$0</span></div>
-                    </div>
-                </div>
-            </div>
 
-            <h3 style="margin-top: 40px;">資源配置分析 (本月)</h3>
-            <div class="chart-container">
-                <canvas id="expenseChart"></canvas>
-            </div>
+                <h3 style="margin-top: 40px;">資源配置分析 (本月)</h3>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
 
-            <h3 style="margin-top: 40px;">近期紀錄</h3>
-            <ul class="record-list" id="recordList">
-                <!-- 由 JS 動態生成 -->
-            </ul>
+                <h3 style="margin-top: 40px;">近期紀錄</h3>
+                <ul class="record-list" id="recordList">
+                    <!-- 由 JS 動態生成 -->
+                </ul>
+            </div>
+        </div>
+    </div> <!-- 結束 main-app -->
+    
+    <!-- 自訂 Modal 區塊 -->
+    <div id="customModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <p id="modalMessage" style="font-size: 16px; margin-bottom: 20px; font-weight: 500;"></p>
+            <div style="display: flex; justify-content: center; gap: 10px;">
+                <button id="modalBtnCancel" class="modal-btn modal-btn-cancel hidden">取消</button>
+                <button id="modalBtnConfirm" class="modal-btn modal-btn-confirm">確定</button>
+            </div>
         </div>
     </div>
-    </div> <!-- 結束 main-app -->
 </div>
 
 <script>
     // ====== 0. 系統設定 ======
     // 若在此處填入您的 GAS API URL，登入畫面將會自動隱藏該輸入框
-    const HARDCODED_API_URL = ""; // 範例: "https://script.google.com/macros/s/XXXXXX/exec"
+    const HARDCODED_API_URL = ""; 
 
     // ====== 1. 分類資料定義 ======
     const categoryData = {
@@ -470,6 +505,35 @@
         }
     };
 
+    // ====== 1.5 自訂 Modal 邏輯 ======
+    function showModal(message, isConfirm = false) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('customModal');
+            const msgEl = document.getElementById('modalMessage');
+            const btnConfirm = document.getElementById('modalBtnConfirm');
+            const btnCancel = document.getElementById('modalBtnCancel');
+
+            msgEl.textContent = message;
+            modal.classList.remove('hidden');
+
+            if (isConfirm) {
+                btnCancel.classList.remove('hidden');
+            } else {
+                btnCancel.classList.add('hidden');
+            }
+
+            btnConfirm.onclick = () => {
+                modal.classList.add('hidden');
+                resolve(true);
+            };
+
+            btnCancel.onclick = () => {
+                modal.classList.add('hidden');
+                resolve(false);
+            };
+        });
+    }
+
     // ====== 2. 初始化與事件綁定 ======
     document.addEventListener('DOMContentLoaded', () => {
         // 處理 API URL 顯示邏輯
@@ -484,7 +548,6 @@
 
         // 讀取本地儲存的設定
         const savedAccount = localStorage.getItem('account');
-        
         if (savedAccount) {
             document.getElementById('accountInput').value = savedAccount;
         }
@@ -511,7 +574,7 @@
         const password = document.getElementById('passwordInput').value.trim();
         
         if (!url || !account || !password) {
-            alert('請填寫完整 API URL、帳號與密碼！');
+            await showModal('請填寫完整 API URL、帳號與密碼！');
             return;
         }
 
@@ -537,14 +600,14 @@
                 }
                 localStorage.setItem('account', account);
                 localStorage.setItem('isLoggedIn', 'true');
-                alert('登入成功！');
+                await showModal('登入成功！');
                 showMainApp();
             } else {
-                alert('登入失敗: ' + result.message);
+                await showModal('登入失敗: ' + result.message);
             }
         } catch (error) {
             console.error(error);
-            alert('連線失敗，請檢查 URL 是否正確或確認 GAS 已設定為「所有人」可存取。');
+            await showModal('連線失敗，請檢查 URL 是否正確或確認 GAS 已設定為「所有人」可存取。');
         } finally {
             loginBtn.disabled = false;
             loginBtn.textContent = '登入系統';
@@ -660,7 +723,7 @@
         
         const apiUrl = HARDCODED_API_URL.trim() !== "" ? HARDCODED_API_URL.trim() : localStorage.getItem('gasApiUrl');
         if (!apiUrl) {
-            alert('請先設定 GAS API URL！');
+            await showModal('請先設定 GAS API URL！');
             return;
         }
 
@@ -690,17 +753,17 @@
             const result = await response.json();
             
             if (result.status === 'success') {
-                alert('✨ 記錄成功寫入！');
+                await showModal('✨ 記錄成功寫入！');
                 document.getElementById('recordForm').reset();
                 document.getElementById('imgPreview').style.display = 'none';
                 compressedImageBase64 = "";
                 updateMainCategories();
             } else {
-                alert('寫入失敗: ' + result.message);
+                await showModal('寫入失敗: ' + result.message);
             }
         } catch (error) {
             console.error(error);
-            alert('API 呼叫失敗，請檢查網址或網路狀態。');
+            await showModal('API 呼叫失敗，請檢查網址或網路狀態。');
         } finally {
             submitBtn.disabled = false;
             submitBtn.textContent = '✨ 記錄生活軌跡';
@@ -734,7 +797,7 @@
             }
         } catch (error) {
             console.error(error);
-            alert('讀取數據失敗。');
+            await showModal('讀取數據失敗。');
         } finally {
             document.getElementById('loader').classList.add('hidden');
         }
@@ -774,7 +837,6 @@
 
                 const li = document.createElement('li');
                 li.className = 'record-item';
-                li.style.alignItems = 'flex-start'; // 確保圖片出現時排版靠上對齊
                 li.innerHTML = `
                     <div style="flex: 1; padding-right: 15px;">
                         <div style="font-size:12px; color:#888;">${dateStr}</div>
@@ -785,10 +847,14 @@
                         <div style="font-size:14px; color:#666; margin-top:4px;">${record['備註'] || ''}</div>
                         ${imageHtml}
                     </div>
-                    <div style="font-size:18px; font-weight:bold; color: var(--text-color); margin-top: 10px;">
-                        $${record['金額'].toLocaleString()}
+                    <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                        <div style="font-size:18px; font-weight:bold; color: var(--text-color); margin-top: 10px;">
+                            $${record['金額'].toLocaleString()}
+                        </div>
+                        <button class="btn-delete" onclick="deleteRecord('${record['時間戳記']}')" title="刪除此紀錄">🗑️</button>
                     </div>
                 `;
+
                 listEl.appendChild(li);
             });
         }
@@ -921,6 +987,51 @@
                 cutout: '60%' // 甜甜圈粗細
             }
         });
+    }
+
+    // ====== 7. 刪除紀錄邏輯 ======
+    async function deleteRecord(timestamp) {
+        const isConfirmed = await showModal("確定要刪除這筆紀錄嗎？資料將從您的試算表中永久移除哦！", true);
+        if (!isConfirmed) {
+            return;
+        }
+
+        const apiUrl = HARDCODED_API_URL.trim() !== "" ? HARDCODED_API_URL.trim() : localStorage.getItem('gasApiUrl');
+        if (!apiUrl) {
+            await showModal("系統錯誤：找不到 API 網址，請確認登入設定！");
+            return;
+        }
+
+        // 顯示載入中
+        document.getElementById('loader').classList.remove('hidden');
+        document.getElementById('dashboardContent').classList.add('hidden');
+
+        try {
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                body: JSON.stringify({
+                    action: 'deleteRecord',
+                    timestamp: timestamp
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                await showModal('🗑️ 紀錄已成功刪除！');
+                loadDashboardData(); // 重新載入數據刷新畫面
+            } else {
+                await showModal('刪除失敗: ' + result.message);
+                // 恢復畫面
+                document.getElementById('loader').classList.add('hidden');
+                document.getElementById('dashboardContent').classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error(error);
+            await showModal('API 呼叫失敗，請檢查網路連線。');
+            document.getElementById('loader').classList.add('hidden');
+            document.getElementById('dashboardContent').classList.remove('hidden');
+        }
     }
 </script>
 
